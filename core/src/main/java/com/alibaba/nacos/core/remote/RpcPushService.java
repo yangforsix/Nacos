@@ -49,6 +49,7 @@ public class RpcPushService {
      */
     public void pushWithCallback(String connectionId, ServerRequest request, PushCallBack requestCallBack,
             Executor executor) {
+        // 这里发出ServerRequest，查找对应的handler查看客户端处理方式，最终会走到客户端的NamingPushRequestHandler进行处理回复的消息
         Connection connection = connectionManager.getConnection(connectionId);
         if (connection != null) {
             try {

@@ -109,7 +109,8 @@ public class InstancesChangeNotifier extends Subscriber<InstancesChangeEvent> {
         }
         return serviceInfos;
     }
-    
+
+    // 实例变更事件处理，本地所有实现了AbstractEventListener的监听者都可以接受到事件，并做自定义逻辑处理
     @Override
     public void onEvent(InstancesChangeEvent event) {
         String key = ServiceInfo
@@ -120,6 +121,7 @@ public class InstancesChangeNotifier extends Subscriber<InstancesChangeEvent> {
         }
         for (final EventListener listener : eventListeners) {
             final com.alibaba.nacos.api.naming.listener.Event namingEvent = transferToNamingEvent(event);
+            // 匹配监听者
             if (listener instanceof AbstractEventListener && ((AbstractEventListener) listener).getExecutor() != null) {
                 ((AbstractEventListener) listener).getExecutor().execute(() -> listener.onEvent(namingEvent));
             } else {

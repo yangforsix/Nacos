@@ -119,7 +119,7 @@ public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements Na
             ServiceEvent.ServiceChangedEvent serviceChangedEvent = (ServiceEvent.ServiceChangedEvent) event;
             // 从事件中获取到服务信息
             Service service = serviceChangedEvent.getService();
-            // 根据信息创建任务添加到处理队列中
+            // 根据信息创建任务添加到处理队列中，注意这里是推送所有服务下实例
             delayTaskEngine.addTask(service, new PushDelayTask(service, PushConfig.getInstance().getPushTaskDelay()));
             // 统计信息变更
             MetricsMonitor.incrementServiceChangeCount(service.getNamespace(), service.getGroup(), service.getName());

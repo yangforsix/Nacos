@@ -146,7 +146,8 @@ public class ServiceInfoHolder implements Closeable {
     
     /**
      * Process service info.
-     *
+     * 源码可见2.x版本中如果订阅服务的订阅信息有变动，则会把更改后的信息写入本地文件中进行持久化[无论是临时或者非临时实例]
+     * 1.x版本中只有非临时实例才会写入文件进行持久化
      * @param serviceInfo new service info
      * @return service info
      */
@@ -155,24 +156,32 @@ public class ServiceInfoHolder implements Closeable {
         if (serviceKey == null) {
             return null;
         }
+        // 获取本地缓存中的老服务信息
         ServiceInfo oldService = serviceInfoMap.get(serviceInfo.getKey());
         if (isEmptyOrErrorPush(serviceInfo)) {
+            // 如果新的服务信息是空的或者数据有误就返回老服务的信息
             //empty or error push, just ignore
             return oldService;
         }
+        // 更新本地服务信息缓存
         serviceInfoMap.put(serviceInfo.getKey(), serviceInfo);
+        // 判断新老服务信息是否有变动
         boolean changed = isChangedServiceInfo(oldService, serviceInfo);
         if (StringUtils.isBlank(serviceInfo.getJsonFromServer())) {
             serviceInfo.setJsonFromServer(JacksonUtils.toJson(serviceInfo));
         }
         MetricsMonitor.getServiceInfoMapSizeMonitor().set(serviceInfoMap.size());
+        // 如果有变动
         if (changed) {
             NAMING_LOGGER.info("current ips:({}) service: {} -> {}", serviceInfo.ipCount(), serviceInfo.getKey(),
                     JacksonUtils.toJson(serviceInfo.getHosts()));
+            // 发送实例更改事件，这里貌似是个扩展点
             NotifyCenter.publishEvent(new InstancesChangeEvent(notifierEventScope, serviceInfo.getName(), serviceInfo.getGroupName(),
                     serviceInfo.getClusters(), serviceInfo.getHosts()));
+            // 写入文件持久化
             DiskCache.write(serviceInfo, cacheDir);
         }
+        // 返回该服务信息
         return serviceInfo;
     }
     
