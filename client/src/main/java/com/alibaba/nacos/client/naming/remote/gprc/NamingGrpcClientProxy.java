@@ -120,7 +120,9 @@ public class NamingGrpcClientProxy extends AbstractNamingClientProxy {
     public void registerService(String serviceName, String groupName, Instance instance) throws NacosException {
         NAMING_LOGGER.info("[REGISTER-SERVICE] {} registering service {} with instance {}", namespaceId, serviceName,
                 instance);
+        // 缓存instance信息，后续可以做重试
         redoService.cacheInstanceForRedo(serviceName, groupName, instance);
+        // 真正执行注册逻辑
         doRegisterService(serviceName, groupName, instance);
     }
     
@@ -205,9 +207,12 @@ public class NamingGrpcClientProxy extends AbstractNamingClientProxy {
      * @throws NacosException nacos exception
      */
     public void doRegisterService(String serviceName, String groupName, Instance instance) throws NacosException {
+        // 构建注册实例请求
         InstanceRequest request = new InstanceRequest(namespaceId, serviceName, groupName,
                 NamingRemoteConstants.REGISTER_INSTANCE, instance);
+        // 通过grpc向服务端发起注册请求
         requestToServer(request, Response.class);
+        // 请求完成，说明注册完成，在之前的缓存instance中将信息标记为已注册不会进入到重试流程
         redoService.instanceRegistered(serviceName, groupName);
     }
     
@@ -292,7 +297,9 @@ public class NamingGrpcClientProxy extends AbstractNamingClientProxy {
         if (NAMING_LOGGER.isDebugEnabled()) {
             NAMING_LOGGER.debug("[GRPC-SUBSCRIBE] service:{}, group:{}, cluster:{} ", serviceName, groupName, clusters);
         }
+        // 本地缓存订阅信息，如果失败则重试
         redoService.cacheSubscriberForRedo(serviceName, groupName, clusters);
+        // 真正执行订阅逻辑
         return doSubscribe(serviceName, groupName, clusters);
     }
     
@@ -306,10 +313,14 @@ public class NamingGrpcClientProxy extends AbstractNamingClientProxy {
      * @throws NacosException nacos exception
      */
     public ServiceInfo doSubscribe(String serviceName, String groupName, String clusters) throws NacosException {
+        // 生成订阅的request,服务端处理入口为该类型的handler中的handle方法
         SubscribeServiceRequest request = new SubscribeServiceRequest(namespaceId, groupName, serviceName, clusters,
                 true);
+        // grpc调用服务端请求订阅
         SubscribeServiceResponse response = requestToServer(request, SubscribeServiceResponse.class);
+        // 运行到这里说明订阅成功，将重试缓存中的信息标为订阅过后续不再重试
         redoService.subscriberRegistered(serviceName, groupName, clusters);
+        // 返回服务端返回的服务信息
         return response.getServiceInfo();
     }
     

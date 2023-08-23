@@ -55,16 +55,21 @@ public class PushExecuteTask extends AbstractExecuteTask {
     
     @Override
     public void run() {
+        // 执行推送
         try {
             PushDataWrapper wrapper = generatePushData();
             ClientManager clientManager = delayTaskEngine.getClientManager();
+            // 对所有的目标客户端连接遍历
             for (String each : getTargetClientIds()) {
+                // 获取连接信息
                 Client client = clientManager.getClient(each);
                 if (null == client) {
                     // means this client has disconnect
                     continue;
                 }
+                // 获取到每个连接中该服务对应的订阅者信息
                 Subscriber subscriber = clientManager.getClient(each).getSubscriber(service);
+                // 使用执行器对目标客户端执行相应的调用方式告知订阅者: 服务订阅或者配置发生了变更
                 delayTaskEngine.getPushExecutor().doPushWithCallback(each, subscriber, wrapper,
                         new ServicePushCallback(each, subscriber, wrapper.getOriginalData(), delayTask.isPushToAll()));
             }

@@ -100,12 +100,17 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
      */
     @Override
     public void registerInstance(String namespaceId, String serviceName, Instance instance) throws NacosException {
+        // 实例对象参数校验
         NamingUtils.checkInstanceIsLegal(instance);
-        
+        // 是否是临时实例，默认为true，保存到内存，否则就以文件形式保存到磁盘
         boolean ephemeral = instance.isEphemeral();
+        // 根据实例信息拼接出客户端id
         String clientId = IpPortBasedClient.getClientId(instance.toInetAddr(), ephemeral);
+        // 根据这个客户端id和其他信息构建出抽象的client对象，缓存这个client对象，并对这个client开启定时任务进行心跳监测
         createIpPortClientIfAbsent(clientId);
+        // 根据信息构建出服务Service的对象
         Service service = getService(namespaceId, serviceName, ephemeral);
+        // 执行注册实例逻辑流程
         clientOperationService.registerInstance(service, instance, clientId);
     }
     
@@ -328,6 +333,7 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
     }
     
     private void createIpPortClientIfAbsent(String clientId) {
+        // 判断缓存中是否已经缓存过该抽象出来的客户端对象（其中包含的是链接信息）
         if (!clientManager.contains(clientId)) {
             ClientAttributes clientAttributes;
             if (ClientAttributesFilter.threadLocalClientAttributes.get() != null) {
@@ -335,6 +341,7 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
             } else {
                 clientAttributes = new ClientAttributes();
             }
+            // 这里肯定是不存在于缓存中，需要构建抽象对象后，进行链接并缓存
             clientManager.clientConnected(clientId, clientAttributes);
         }
     }

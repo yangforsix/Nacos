@@ -39,6 +39,7 @@ public class HealthCheckTaskInterceptWrapper implements Runnable {
     @Override
     public void run() {
         try {
+            // 执行心跳检测任务
             interceptorChain.doInterceptor(task);
         } catch (Exception e) {
             Loggers.SRV_LOG.info("Interceptor health check task {} failed", task.getTaskId(), e);

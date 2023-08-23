@@ -93,17 +93,25 @@ public class InstanceControllerV2 {
     
     /**
      * Register new instance.
+     * grpc调用的注册实例接口
      */
     @CanDistro
     @PostMapping
     @Secured(action = ActionTypes.WRITE)
     public Result<String> register(InstanceForm instanceForm) throws NacosException {
         // check param
+        // 对实例对象内的参数进行填充默认值和相关值校验
         instanceForm.validate();
         checkWeight(instanceForm.getWeight());
         // build instance
+        // 重新将信息构建为instance对象
         Instance instance = buildInstance(instanceForm);
+        // 注册这个实例对象
         instanceServiceV2.registerInstance(instanceForm.getNamespaceId(), buildCompositeServiceName(instanceForm), instance);
+        // 发布事件用来跟踪服务实例注册过程
+        // RegisterInstanceTraceEvent事件会记录相关的注册信息和状态变化。
+        // 通过监听该事件，可以监控服务实例的注册情况，包括成功注册、注册失败等事件。
+        // 这对于服务治理和监控非常重要，可以帮助开发人员及时发现注册问题并进行相应的处理。
         NotifyCenter.publishEvent(new RegisterInstanceTraceEvent(System.currentTimeMillis(), "",
                 false, instanceForm.getNamespaceId(), instanceForm.getGroupName(), instanceForm.getServiceName(),
                 instance.getIp(), instance.getPort()));

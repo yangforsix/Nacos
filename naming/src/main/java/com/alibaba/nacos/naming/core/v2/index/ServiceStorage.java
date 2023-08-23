@@ -75,16 +75,23 @@ public class ServiceStorage {
     }
     
     public ServiceInfo getData(Service service) {
+        // 如果缓存中存在了该服务信息，则直接返回
+        // 否则就调用getPushData方法
         return serviceDataIndexes.containsKey(service) ? serviceDataIndexes.get(service) : getPushData(service);
     }
     
     public ServiceInfo getPushData(Service service) {
+        // 根据临时服务对象生成一个空的ServiceInfo
         ServiceInfo result = emptyServiceInfo(service);
+        // 如果该服务没有进行注册就直接返回空的服务信息对象ServiceInfo
         if (!ServiceManager.getInstance().containSingleton(service)) {
             return result;
         }
+        // 如果注册了，就从缓存中获取到这个Service对象
         Service singleton = ServiceManager.getInstance().getSingleton(service);
+        // 根据这个服务对象获取到它的所有实例信息
         result.setHosts(getAllInstancesFromIndex(singleton));
+        // 将这个服务的信息放入【服务数据】缓存中 <Service, ServiceInfo>
         serviceDataIndexes.put(singleton, result);
         return result;
     }
@@ -106,10 +113,15 @@ public class ServiceStorage {
     private List<Instance> getAllInstancesFromIndex(Service service) {
         Set<Instance> result = new HashSet<>();
         Set<String> clusters = new HashSet<>();
+        // 从之前注册的缓存中获取到这个服务的所有注册过的实例连接信息
         for (String each : serviceIndexesManager.getAllClientsRegisteredService(service)) {
+            // 获取对应的实例发布信息
             Optional<InstancePublishInfo> instancePublishInfo = getInstanceInfo(each, service);
             if (instancePublishInfo.isPresent()) {
+                // 如果存在实例发布信息
+                // 就获取发布信息
                 InstancePublishInfo publishInfo = instancePublishInfo.get();
+                // 将发布信息中的实例信息添加到返回的实例集合中
                 //If it is a BatchInstancePublishInfo type, it will be processed manually and added to the instance list
                 if (publishInfo instanceof BatchInstancePublishInfo) {
                     BatchInstancePublishInfo batchInstancePublishInfo = (BatchInstancePublishInfo) publishInfo;
@@ -122,8 +134,10 @@ public class ServiceStorage {
                 }
             }
         }
+        // 放入到【服务 - 集群】缓存中
         // cache clusters of this service
         serviceClusterIndex.put(service, clusters);
+        // 结果返回
         return new LinkedList<>(result);
     }
     
@@ -143,7 +157,8 @@ public class ServiceStorage {
         }
         return resultInstanceList;
     }
-    
+
+    // 根据连接信息id找到对应的实例发布信息
     private Optional<InstancePublishInfo> getInstanceInfo(String clientId, Service service) {
         Client client = clientManager.getClient(clientId);
         if (null == client) {

@@ -99,7 +99,10 @@ public class NamingGrpcRedoService implements ConnectionEventListener {
      * @param instance    registered instance
      */
     public void cacheInstanceForRedo(String serviceName, String groupName, Instance instance) {
+        // 获取拼接后的组名
         String key = NamingUtils.getGroupedName(serviceName, groupName);
+        // 构建 InstanceRedoData 对象放入缓存中去
+        // InstanceRedoData 中存放服务名、实例等数据做重试使用
         InstanceRedoData redoData = InstanceRedoData.build(serviceName, groupName, instance);
         synchronized (registeredInstances) {
             registeredInstances.put(key, redoData);
@@ -211,6 +214,7 @@ public class NamingGrpcRedoService implements ConnectionEventListener {
      * @param cluster     cluster
      */
     public void cacheSubscriberForRedo(String serviceName, String groupName, String cluster) {
+        // 和注册逻辑相似，本地缓存数据作重试用
         String key = ServiceInfo.getKey(NamingUtils.getGroupedName(serviceName, groupName), cluster);
         SubscriberRedoData redoData = SubscriberRedoData.build(serviceName, groupName, cluster);
         synchronized (subscribes) {

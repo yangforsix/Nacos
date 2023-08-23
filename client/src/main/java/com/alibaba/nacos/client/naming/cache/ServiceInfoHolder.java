@@ -128,6 +128,7 @@ public class ServiceInfoHolder implements Closeable {
         if (failoverReactor.isFailoverSwitch()) {
             return failoverReactor.getService(key);
         }
+        // 从本地服务缓存中获取服务信息
         return serviceInfoMap.get(key);
     }
     

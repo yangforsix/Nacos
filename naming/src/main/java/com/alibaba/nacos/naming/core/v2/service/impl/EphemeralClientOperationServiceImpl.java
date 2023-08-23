@@ -54,23 +54,31 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
     
     @Override
     public void registerInstance(Service service, Instance instance, String clientId) throws NacosException {
+        // 对实例进行校验
         NamingUtils.checkInstanceIsLegal(instance);
-    
+        // 根据信息创建一个Service，并放入缓存，如果缓存已经存在就获取缓存中的
         Service singleton = ServiceManager.getInstance().getSingleton(service);
+        // 实例必须是临时实例
         if (!singleton.isEphemeral()) {
             throw new NacosRuntimeException(NacosException.INVALID_PARAM,
                     String.format("Current service %s is persistent service, can't register ephemeral instance.",
                             singleton.getGroupedServiceName()));
         }
+        // 获取连接对象
         Client client = clientManager.getClient(clientId);
+        // 连接不合法就直接返回
         if (!clientIsLegal(client, clientId)) {
             return;
         }
+        // 获取实例的发布信息内容
         InstancePublishInfo instanceInfo = getPublishInfo(instance);
+        // 添加发布信息至连接信息中
         client.addServiceInstance(singleton, instanceInfo);
         client.setLastUpdatedTime();
         client.recalculateRevision();
+        // 发布事件 - 服务注册事件
         NotifyCenter.publishEvent(new ClientOperationEvent.ClientRegisterServiceEvent(singleton, clientId));
+        // 发布事件 - 将服务信息和实例信息刷入内存中
         NotifyCenter
                 .publishEvent(new MetadataEvent.InstanceMetadataEvent(singleton, instanceInfo.getMetadataId(), false));
     }
@@ -124,13 +132,18 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
     
     @Override
     public void subscribeService(Service service, Subscriber subscriber, String clientId) {
+        // 获取到服务信息
         Service singleton = ServiceManager.getInstance().getSingletonIfExist(service).orElse(service);
+        // 取得连接信息
         Client client = clientManager.getClient(clientId);
+        // 如果连接断开或者不是临时实例就不处理
         if (!clientIsLegal(client, clientId)) {
             return;
         }
+        // 把订阅者先加入到连接信息中
         client.addServiceSubscriber(singleton, subscriber);
         client.setLastUpdatedTime();
+        // 发布客户端订阅服务的事件，具体真正处理逻辑在这个事件处理逻辑中
         NotifyCenter.publishEvent(new ClientOperationEvent.ClientSubscribeServiceEvent(singleton, clientId));
     }
     

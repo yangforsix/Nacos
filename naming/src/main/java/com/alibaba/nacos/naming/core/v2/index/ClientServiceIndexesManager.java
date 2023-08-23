@@ -45,9 +45,10 @@ import java.util.concurrent.ConcurrentMap;
  */
 @Component
 public class ClientServiceIndexesManager extends SmartSubscriber {
-    
+    // 注册表
     private final ConcurrentMap<Service, Set<String>> publisherIndexes = new ConcurrentHashMap<>();
-    
+
+    // 服务订阅表
     private final ConcurrentMap<Service, Set<String>> subscriberIndexes = new ConcurrentHashMap<>();
     
     public ClientServiceIndexesManager() {
@@ -55,6 +56,7 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
     }
     
     public Collection<String> getAllClientsRegisteredService(Service service) {
+        // 从注册表中获取注册了的服务信息，没有就返回空集合
         return publisherIndexes.containsKey(service) ? publisherIndexes.get(service) : new ConcurrentHashSet<>();
     }
     
@@ -122,6 +124,7 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
         } else if (event instanceof ClientOperationEvent.ClientDeregisterServiceEvent) {
             removePublisherIndexes(service, clientId);
         } else if (event instanceof ClientOperationEvent.ClientSubscribeServiceEvent) {
+            // 添加订阅者
             addSubscriberIndexes(service, clientId);
         } else if (event instanceof ClientOperationEvent.ClientUnsubscribeServiceEvent) {
             removeSubscriberIndexes(service, clientId);
@@ -129,8 +132,11 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
     }
     
     private void addPublisherIndexes(Service service, String clientId) {
+        // 在publisherIndexes内存信息【注册表】中保存服务信息和对应包含的连接id集合
         publisherIndexes.computeIfAbsent(service, key -> new ConcurrentHashSet<>());
+        // 添加信息至注册表
         publisherIndexes.get(service).add(clientId);
+        // 同时再次发布服务变更事件
         NotifyCenter.publishEvent(new ServiceEvent.ServiceChangedEvent(service, true));
     }
     
@@ -143,9 +149,11 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
     }
     
     private void addSubscriberIndexes(Service service, String clientId) {
+        // 在服务订阅表中对应的Service下加入订阅者连接的id: clientId
         subscriberIndexes.computeIfAbsent(service, key -> new ConcurrentHashSet<>());
         // Fix #5404, Only first time add need notify event.
         if (subscriberIndexes.get(service).add(clientId)) {
+            // 加入成功，发布服务被订阅的事件
             NotifyCenter.publishEvent(new ServiceEvent.ServiceSubscribedEvent(service, clientId));
         }
     }

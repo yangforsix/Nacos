@@ -66,14 +66,17 @@ public class EphemeralIpPortClientManager implements ClientManager {
     
     @Override
     public boolean clientConnected(String clientId, ClientAttributes attributes) {
+        // 通过工厂将信息构建为一个client，并开始进行连接
         return clientConnected(clientFactory.newClient(clientId, attributes));
     }
     
     @Override
     public boolean clientConnected(final Client client) {
+        // 缓存新构建的client对象
         clients.computeIfAbsent(client.getClientId(), s -> {
             Loggers.SRV_LOG.info("Client connection {} connect", client.getClientId());
             IpPortBasedClient ipPortBasedClient = (IpPortBasedClient) client;
+            // 初始化创建并开始执行心跳检测任务
             ipPortBasedClient.init();
             return ipPortBasedClient;
         });

@@ -184,6 +184,7 @@ public final class ServiceUtil {
      */
     public static ServiceInfo selectInstancesWithHealthyProtection(ServiceInfo serviceInfo, ServiceMetadata serviceMetadata, String cluster,
             boolean healthyOnly, boolean enableOnly, String subscriberIp) {
+        // 构建实例过滤的条件，实现过滤逻辑doFilter方法
         InstancesFilter filter = (filteredResult, allInstances, healthyCount) -> {
             if (serviceMetadata == null) {
                 return;
@@ -225,6 +226,7 @@ public final class ServiceUtil {
                 filteredResult.setHosts(filteredInstances);
             }
         };
+        // 根据过滤条件，和传入的服务实例信息开始真正执行过滤实例
         return doSelectInstances(serviceInfo, cluster, healthyOnly, enableOnly, filter);
     }
 
@@ -241,6 +243,7 @@ public final class ServiceUtil {
     private static ServiceInfo doSelectInstances(ServiceInfo serviceInfo, String cluster,
                                                  boolean healthyOnly, boolean enableOnly,
                                                  InstancesFilter filter) {
+        // 开始拼凑返回所需的对象ServiceInfo
         ServiceInfo result = new ServiceInfo();
         result.setName(serviceInfo.getName());
         result.setGroupName(serviceInfo.getGroupName());
@@ -255,7 +258,9 @@ public final class ServiceUtil {
         List<com.alibaba.nacos.api.naming.pojo.Instance> filteredInstances = new LinkedList<>();
         // The instance list of all filtered by cluster/enabled condition.
         List<com.alibaba.nacos.api.naming.pojo.Instance> allInstances = new LinkedList<>();
+        // 根据之前获取的服务信息中的地址开始初步过滤
         for (com.alibaba.nacos.api.naming.pojo.Instance ip : serviceInfo.getHosts()) {
+            // 筛选ip地址
             if (checkCluster(clusterSets, ip) && checkEnabled(enableOnly, ip)) {
                 if (!healthyOnly || ip.isHealthy()) {
                     filteredInstances.add(ip);
@@ -267,9 +272,12 @@ public final class ServiceUtil {
             }
         }
         result.setHosts(filteredInstances);
+        // 这边如果没有自定义过滤方法则直接返回，但是根据上一步可以得知这边是定义了自定义过滤方法的
         if (filter != null) {
+            // 调用doFilter根据定制的逻辑开始过滤
             filter.doFilter(result, allInstances, healthyCount);
         }
+        // 最后返回处理完后的数据ServiceInfo
         return result;
     }
     

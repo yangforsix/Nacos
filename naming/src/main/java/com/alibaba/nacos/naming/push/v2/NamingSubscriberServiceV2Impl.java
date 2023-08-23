@@ -114,15 +114,24 @@ public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements Na
     @Override
     public void onEvent(Event event) {
         if (event instanceof ServiceEvent.ServiceChangedEvent) {
+            // 如果收到了服务变更的事件
             // If service changed, push to all subscribers.
             ServiceEvent.ServiceChangedEvent serviceChangedEvent = (ServiceEvent.ServiceChangedEvent) event;
+            // 从事件中获取到服务信息
             Service service = serviceChangedEvent.getService();
+            // 根据信息创建任务添加到处理队列中
             delayTaskEngine.addTask(service, new PushDelayTask(service, PushConfig.getInstance().getPushTaskDelay()));
+            // 统计信息变更
             MetricsMonitor.incrementServiceChangeCount(service.getNamespace(), service.getGroup(), service.getName());
         } else if (event instanceof ServiceEvent.ServiceSubscribedEvent) {
+            // 服务被客户端订阅事件处理
             // If service is subscribed by one client, only push this client.
+            // 事件转型处理
             ServiceEvent.ServiceSubscribedEvent subscribedEvent = (ServiceEvent.ServiceSubscribedEvent) event;
+            // 获取到被订阅的服务信息
             Service service = subscribedEvent.getService();
+            // 向延迟任务执行引擎中在service下添加了一个延迟处理任务PushDelayTask
+            // 当某个服务或配置发生变化时，Nacos需要将这个变更的通知推送给订阅了该服务或配置的客户端。为了保证推送的及时性和准确性，Nacos引入了PushDelayTask来处理推送任务。
             delayTaskEngine.addTask(service, new PushDelayTask(service, PushConfig.getInstance().getPushTaskDelay(),
                     subscribedEvent.getClientId()));
         }

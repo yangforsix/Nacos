@@ -55,16 +55,21 @@ public class PushDelayTask extends AbstractDelayTask {
     
     @Override
     public void merge(AbstractDelayTask task) {
+        // 这里的传入task是已经存在的任务
         if (!(task instanceof PushDelayTask)) {
+            // 如果原来的任务不是PushDelayTask就不做处理
             return;
         }
         PushDelayTask oldTask = (PushDelayTask) task;
+        // 是否是要推送到所有实例，根据上一个任务的要求设置和本任务兼容的值
         if (isPushToAll() || oldTask.isPushToAll()) {
             pushToAll = true;
             targetClients = null;
         } else {
+            // 如果两个任务都不需要推送到所有实例，那么就只需要把客户端信息添加到任务需要推送的客户端信息列表中即可
             targetClients.addAll(oldTask.getTargetClients());
         }
+        // 修改最后的处理事件
         setLastProcessTime(Math.min(getLastProcessTime(), task.getLastProcessTime()));
         Loggers.PUSH.info("[PUSH] Task merge for {}", service);
     }

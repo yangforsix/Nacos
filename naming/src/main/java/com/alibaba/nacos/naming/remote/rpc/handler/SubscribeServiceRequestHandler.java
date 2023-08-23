@@ -58,23 +58,33 @@ public class SubscribeServiceRequestHandler extends RequestHandler<SubscribeServ
         this.metadataManager = metadataManager;
         this.clientOperationService = clientOperationService;
     }
-    
+
+    // 处理客户端订阅请求
     @Override
     @Secured(action = ActionTypes.READ)
     public SubscribeServiceResponse handle(SubscribeServiceRequest request, RequestMeta meta) throws NacosException {
+        // 从请求中获取相关信息
         String namespaceId = request.getNamespace();
         String serviceName = request.getServiceName();
         String groupName = request.getGroupName();
         String app = request.getHeader("app", "unknown");
         String groupedServiceName = NamingUtils.getGroupedName(serviceName, groupName);
+        // 根据信息构建一个临时服务对象
         Service service = Service.newService(namespaceId, groupName, serviceName, true);
+        // 根据请求构建一个对应的订阅者对象
         Subscriber subscriber = new Subscriber(meta.getClientIp(), meta.getClientVersion(), app, meta.getClientIp(),
                 namespaceId, groupedServiceName, 0, request.getClusters());
+        // 获取服务信息
+        // ServiceUtil.selectInstancesWithHealthyProtection 从传入参数的服务信息中选出健康的正常的实例，并将相关信息拼凑成ServiceInfo
+        // serviceStorage.getData(service) 根据构建的临时服务对象获取相应的服务信息
         ServiceInfo serviceInfo = ServiceUtil.selectInstancesWithHealthyProtection(serviceStorage.getData(service),
                 metadataManager.getServiceMetadata(service).orElse(null), subscriber.getCluster(), false,
                 true, subscriber.getIp());
+        // 处理订阅请求
         if (request.isSubscribe()) {
+            // 订阅服务逻辑
             clientOperationService.subscribeService(service, subscriber, meta.getConnectionId());
+            // 发布订阅服务追踪事件
             NotifyCenter.publishEvent(new SubscribeServiceTraceEvent(System.currentTimeMillis(),
                     meta.getClientIp(), service.getNamespace(), service.getGroup(), service.getName()));
         } else {
@@ -82,6 +92,7 @@ public class SubscribeServiceRequestHandler extends RequestHandler<SubscribeServ
             NotifyCenter.publishEvent(new UnsubscribeServiceTraceEvent(System.currentTimeMillis(),
                     meta.getClientIp(), service.getNamespace(), service.getGroup(), service.getName()));
         }
+        // 将过滤完成后的ServiceInfo拼凑Response返回客户端
         return new SubscribeServiceResponse(ResponseCode.SUCCESS.getCode(), "success", serviceInfo);
     }
 }

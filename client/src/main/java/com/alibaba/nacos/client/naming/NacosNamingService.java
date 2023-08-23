@@ -124,11 +124,13 @@ public class NacosNamingService implements NamingService {
     @Override
     public void registerInstance(String serviceName, String groupName, String ip, int port, String clusterName)
             throws NacosException {
+        // 设置instance默认信息值
         Instance instance = new Instance();
         instance.setIp(ip);
         instance.setPort(port);
         instance.setWeight(1.0);
         instance.setClusterName(clusterName);
+        // 注册instance
         registerInstance(serviceName, groupName, instance);
     }
     
@@ -139,7 +141,9 @@ public class NacosNamingService implements NamingService {
     
     @Override
     public void registerInstance(String serviceName, String groupName, Instance instance) throws NacosException {
+        // 校验instance内部参数值
         NamingUtils.checkInstanceIsLegal(instance);
+        // 使用具体实现注册实例
         clientProxy.registerService(serviceName, groupName, instance);
     }
     
@@ -289,38 +293,45 @@ public class NacosNamingService implements NamingService {
             throws NacosException {
         return selectInstances(serviceName, Constants.DEFAULT_GROUP, clusters, healthy, subscribe);
     }
-    
+
+    // 服务发现入口，由Ribbon底层调用最终进入到这个方法
     @Override
     public List<Instance> selectInstances(String serviceName, String groupName, List<String> clusters, boolean healthy,
             boolean subscribe) throws NacosException {
-        
         ServiceInfo serviceInfo;
         String clusterString = StringUtils.join(clusters, ",");
+        // 由调用方查看，这里为true
         if (subscribe) {
+            // 尝试从本地缓存中获取服务信息
             serviceInfo = serviceInfoHolder.getServiceInfo(serviceName, groupName, clusterString);
+            // 如果本地缓存中没有服务信息
             if (null == serviceInfo) {
+                // 尝试订阅服务
                 serviceInfo = clientProxy.subscribe(serviceName, groupName, clusterString);
             }
         } else {
             serviceInfo = clientProxy.queryInstancesOfService(serviceName, groupName, clusterString, 0, false);
         }
+        // 根据获取的服务信息返回正常的健康的实例列表
         return selectInstances(serviceInfo, healthy);
     }
     
     private List<Instance> selectInstances(ServiceInfo serviceInfo, boolean healthy) {
         List<Instance> list;
+        // 服务信息为空直接返回空列表
         if (serviceInfo == null || CollectionUtils.isEmpty(list = serviceInfo.getHosts())) {
             return new ArrayList<>();
         }
-        
+        // 循环筛选
         Iterator<Instance> iterator = list.iterator();
         while (iterator.hasNext()) {
             Instance instance = iterator.next();
+            // 去除不健康不正常的实例信息
             if (healthy != instance.isHealthy() || !instance.isEnabled() || instance.getWeight() <= 0) {
                 iterator.remove();
             }
         }
-        
+        // 返回健康的正常的实例列表
         return list;
     }
     
