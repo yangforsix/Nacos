@@ -98,24 +98,29 @@ public class ConnectionManager {
      * @param connection   connection
      */
     public synchronized boolean register(String connectionId, Connection connection) {
-        
+        // 注册新连接
         if (connection.isConnected()) {
             String clientIp = connection.getMetaInfo().clientIp;
+            // 是否缓存中存在
             if (connections.containsKey(connectionId)) {
                 return true;
             }
+            // 再进行一次通信判断是否存活
             if (checkLimit(connection)) {
                 return false;
             }
             if (traced(clientIp)) {
                 connection.setTraced(true);
             }
+            // 放入连接缓存
             connections.put(connectionId, connection);
+            // 放入客户端连接数记录的缓存
             if (!connectionForClientIp.containsKey(clientIp)) {
                 connectionForClientIp.put(clientIp, new AtomicInteger(0));
             }
+            // 客户端对应的连接数加一
             connectionForClientIp.get(clientIp).getAndIncrement();
-            
+            // 通知客户端连接
             clientConnectionEventListenerRegistry.notifyClientConnected(connection);
             
             LOGGER.info("new connection registered successfully, connectionId = {},connection={} ", connectionId,
@@ -146,9 +151,12 @@ public class ConnectionManager {
      * @param connectionId connectionId.
      */
     public synchronized void unregister(String connectionId) {
+        // 取消一个连接
         Connection remove = this.connections.remove(connectionId);
         if (remove != null) {
+            // 获取连接客户端ip
             String clientIp = remove.getMetaInfo().clientIp;
+            // 客户端连接数减一
             AtomicInteger atomicInteger = connectionForClientIp.get(clientIp);
             if (atomicInteger != null) {
                 int count = atomicInteger.decrementAndGet();
@@ -158,6 +166,7 @@ public class ConnectionManager {
             }
             remove.close();
             LOGGER.info("[{}]Connection unregistered successfully. ", connectionId);
+            // 通知客户端取消连接
             clientConnectionEventListenerRegistry.notifyClientDisConnected(remove);
         }
     }
@@ -244,10 +253,12 @@ public class ConnectionManager {
      */
     @PostConstruct
     public void start() {
-        
+        // 初始化连接驱逐器
         initConnectionEjector();
         // Start UnHealthy Connection Expel Task.
         RpcScheduledExecutor.COMMON_SERVER_EXECUTOR.scheduleWithFixedDelay(() -> {
+            // 周期执行任务
+            // 对sdk正常的连接数量进行统计，打印日志
             runtimeConnectionEjector.doEject();
         }, 1000L, 3000L, TimeUnit.MILLISECONDS);
         

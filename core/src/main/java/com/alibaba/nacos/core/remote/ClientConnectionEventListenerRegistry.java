@@ -42,6 +42,7 @@ public class ClientConnectionEventListenerRegistry {
         
         for (ClientConnectionEventListener clientConnectionEventListener : clientConnectionEventListeners) {
             try {
+                // 对注册的监听者发送连接信息
                 clientConnectionEventListener.clientConnected(connection);
             } catch (Throwable throwable) {
                 Loggers.REMOTE
@@ -62,6 +63,7 @@ public class ClientConnectionEventListenerRegistry {
         
         for (ClientConnectionEventListener clientConnectionEventListener : clientConnectionEventListeners) {
             try {
+                // 对注册的监听者发送取消的连接信息
                 clientConnectionEventListener.clientDisConnected(connection);
             } catch (Throwable throwable) {
                 Loggers.REMOTE.info("[NotifyClientDisConnected] failed for listener {}",

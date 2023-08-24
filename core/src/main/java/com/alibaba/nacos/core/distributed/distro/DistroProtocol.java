@@ -113,6 +113,7 @@ public class DistroProtocol {
      */
     public void sync(DistroKey distroKey, DataOperation action, long delay) {
         for (Member each : memberManager.allMembersWithoutSelf()) {
+            // 通知该服务下除了自身的所有实例
             syncToTarget(distroKey, action, each.getAddress(), delay);
         }
     }

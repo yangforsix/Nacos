@@ -44,6 +44,7 @@ public class NacosRuntimeConnectionEjector extends RuntimeConnectionEjector {
             int totalCount = connections.size();
             Loggers.CONNECTION.info("Connection check task start");
             MetricsMonitor.getLongConnectionMonitor().set(totalCount);
+            // 判断连接信息中的标签是否为sdk，返回是sdk的连接数量
             int currentSdkClientCount = connectionManager.currentSdkClientCount();
             
             Loggers.CONNECTION

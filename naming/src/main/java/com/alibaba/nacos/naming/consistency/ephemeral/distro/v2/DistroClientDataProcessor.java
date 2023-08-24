@@ -118,7 +118,9 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
             return;
         }
         if (event instanceof ClientEvent.ClientDisconnectEvent) {
+            // 基于Distro一致性协议的连接断开逻辑
             DistroKey distroKey = new DistroKey(client.getClientId(), TYPE);
+            // 就是通知这个服务下所有除了自身的实例
             distroProtocol.sync(distroKey, DataOperation.DELETE);
         } else if (event instanceof ClientEvent.ClientChangedEvent) {
             DistroKey distroKey = new DistroKey(client.getClientId(), TYPE);

@@ -54,7 +54,8 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
                 .scheduleExpiredClientCleaner(new ExpiredClientCleaner(this), 0, Constants.DEFAULT_HEART_BEAT_INTERVAL,
                         TimeUnit.MILLISECONDS);
     }
-    
+
+    // 连接注册没有发事件可能是因为只有通过服务注册才能建立连接，注册的时候会有事件进行通知
     @Override
     public void clientConnected(Connection connect) {
         if (!RemoteConstants.LABEL_MODULE_NAMING.equals(connect.getMetaInfo().getLabel(RemoteConstants.LABEL_MODULE))) {
@@ -63,6 +64,7 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
         ClientAttributes attributes = new ClientAttributes();
         attributes.addClientAttribute(ClientConstants.CONNECTION_TYPE, connect.getMetaInfo().getConnectType());
         attributes.addClientAttribute(ClientConstants.CONNECTION_METADATA, connect.getMetaInfo());
+        // 最后将连接信息放入连接信息缓存
         clientConnected(connect.getMetaInfo().getConnectionId(), attributes);
     }
     
@@ -75,6 +77,7 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
     
     @Override
     public boolean clientConnected(final Client client) {
+        // 将连接信息放入连接信息缓存
         clients.computeIfAbsent(client.getClientId(), s -> {
             Loggers.SRV_LOG.info("Client connection {} connect", client.getClientId());
             return (ConnectionBasedClient) client;
@@ -97,11 +100,13 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
     @Override
     public boolean clientDisconnected(String clientId) {
         Loggers.SRV_LOG.info("Client connection {} disconnect, remove instances and subscribers", clientId);
+        // 从缓存中移除连接信息
         ConnectionBasedClient client = clients.remove(clientId);
         if (null == client) {
             return true;
         }
         client.release();
+        // 发送取消连接信息事件，注意这里有两个事件监听
         NotifyCenter.publishEvent(new ClientEvent.ClientDisconnectEvent(client, isResponsibleClient(client)));
         return true;
     }
