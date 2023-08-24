@@ -42,7 +42,8 @@ public class DistroDataRequestHandler extends RequestHandler<DistroDataRequest, 
     public DistroDataRequestHandler(DistroProtocol distroProtocol) {
         this.distroProtocol = distroProtocol;
     }
-    
+
+    // 处理逻辑
     @Override
     public DistroDataResponse handle(DistroDataRequest request, RequestMeta meta) throws NacosException {
         try {
@@ -54,6 +55,7 @@ public class DistroDataRequestHandler extends RequestHandler<DistroDataRequest, 
                 case ADD:
                 case CHANGE:
                 case DELETE:
+                    // 新增修改删除都是同步数据
                     return handleSyncData(request.getDistroData());
                 case QUERY:
                     return handleQueryData(request.getDistroData());
@@ -85,7 +87,9 @@ public class DistroDataRequestHandler extends RequestHandler<DistroDataRequest, 
     }
     
     private DistroDataResponse handleSyncData(DistroData distroData) {
+        // 构建返回参数
         DistroDataResponse result = new DistroDataResponse();
+        // 处理请求数据
         if (!distroProtocol.onReceive(distroData)) {
             result.setErrorCode(ResponseCode.FAIL.getCode());
             result.setMessage("[DISTRO-FAILED] distro data handle failed");

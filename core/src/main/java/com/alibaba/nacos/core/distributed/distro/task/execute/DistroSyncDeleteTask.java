@@ -57,6 +57,7 @@ public class DistroSyncDeleteTask extends AbstractDistroExecuteTask {
         distroData.setDistroKey(getDistroKey());
         distroData.setType(OPERATION);
         getDistroComponentHolder().findTransportAgent(type)
+                // 查看同步数据的逻辑
                 .syncData(distroData, getDistroKey().getTargetServer(), callback);
     }
     

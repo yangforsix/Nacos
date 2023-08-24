@@ -120,7 +120,7 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
         if (event instanceof ClientEvent.ClientDisconnectEvent) {
             // 基于Distro一致性协议的连接断开逻辑
             DistroKey distroKey = new DistroKey(client.getClientId(), TYPE);
-            // 就是通知这个服务下所有除了自身的实例
+            // 就是通知Nacos集群中的其他节点
             distroProtocol.sync(distroKey, DataOperation.DELETE);
         } else if (event instanceof ClientEvent.ClientChangedEvent) {
             DistroKey distroKey = new DistroKey(client.getClientId(), TYPE);
@@ -140,11 +140,13 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
             case CHANGE:
                 ClientSyncData clientSyncData = ApplicationUtils.getBean(Serializer.class)
                         .deserialize(distroData.getContent(), ClientSyncData.class);
+                // 修改同步数据
                 handlerClientSyncData(clientSyncData);
                 return true;
             case DELETE:
                 String deleteClientId = distroData.getDistroKey().getResourceKey();
                 Loggers.DISTRO.info("[Client-Delete] Received distro client sync data {}", deleteClientId);
+                // 注销删除数据
                 clientManager.clientDisconnected(deleteClientId);
                 return true;
             default:
@@ -157,19 +159,22 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
                 .info("[Client-Add] Received distro client sync data {}, revision={}", clientSyncData.getClientId(),
                         clientSyncData.getAttributes().getClientAttribute(ClientConstants.REVISION, 0L));
         clientManager.syncClientConnected(clientSyncData.getClientId(), clientSyncData.getAttributes());
+        // 获取连接对应的客户端信息
         Client client = clientManager.getClient(clientSyncData.getClientId());
+        // 同步数据
         upgradeClient(client, clientSyncData);
     }
     
     private void upgradeClient(Client client, ClientSyncData clientSyncData) {
         Set<Service> syncedService = new HashSet<>();
         // process batch instance sync logic
+        // 批量处理实例同步数据
         processBatchInstanceDistroData(syncedService, client, clientSyncData);
         List<String> namespaces = clientSyncData.getNamespaces();
         List<String> groupNames = clientSyncData.getGroupNames();
         List<String> serviceNames = clientSyncData.getServiceNames();
         List<InstancePublishInfo> instances = clientSyncData.getInstancePublishInfos();
-        
+        // 发布事件同步数据信息
         for (int i = 0; i < namespaces.size(); i++) {
             Service service = Service.newService(namespaces.get(i), groupNames.get(i), serviceNames.get(i));
             Service singleton = ServiceManager.getInstance().getSingleton(service);
@@ -177,6 +182,7 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
             InstancePublishInfo instancePublishInfo = instances.get(i);
             if (!instancePublishInfo.equals(client.getInstancePublishInfo(singleton))) {
                 client.addServiceInstance(singleton, instancePublishInfo);
+                // 同步注册表事件
                 NotifyCenter.publishEvent(
                         new ClientOperationEvent.ClientRegisterServiceEvent(singleton, client.getClientId()));
             }
@@ -184,6 +190,7 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
         for (Service each : client.getAllPublishedService()) {
             if (!syncedService.contains(each)) {
                 client.removeServiceInstance(each);
+                // 发布移除注册表数据事件
                 NotifyCenter.publishEvent(
                         new ClientOperationEvent.ClientDeregisterServiceEvent(each, client.getClientId()));
             }
@@ -204,6 +211,7 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
         List<BatchInstancePublishInfo> batchInstancePublishInfos = batchInstanceData.getBatchInstancePublishInfos();
         
         for (int i = 0; i < namespaces.size(); i++) {
+            // 创建服务信息
             Service service = Service.newService(namespaces.get(i), groupNames.get(i), serviceNames.get(i));
             Service singleton = ServiceManager.getInstance().getSingleton(service);
             syncedService.add(singleton);
@@ -215,7 +223,9 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
                 result = batchInstancePublishInfo.equals(targetInstanceInfo);
             }
             if (!result) {
+                // 如果和原来的数据不相等，就发布事件进行同步
                 client.addServiceInstance(service, batchInstancePublishInfo);
+                // 发布同步注册表的事件
                 NotifyCenter.publishEvent(
                         new ClientOperationEvent.ClientRegisterServiceEvent(singleton, client.getClientId()));
             }

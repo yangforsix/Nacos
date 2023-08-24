@@ -113,7 +113,7 @@ public class DistroProtocol {
      */
     public void sync(DistroKey distroKey, DataOperation action, long delay) {
         for (Member each : memberManager.allMembersWithoutSelf()) {
-            // 通知该服务下除了自身的所有实例
+            // 通知集群中除了自身的其他节点
             syncToTarget(distroKey, action, each.getAddress(), delay);
         }
     }
@@ -130,6 +130,7 @@ public class DistroProtocol {
         DistroKey distroKeyWithTarget = new DistroKey(distroKey.getResourceKey(), distroKey.getResourceType(),
                 targetServer);
         DistroDelayTask distroDelayTask = new DistroDelayTask(distroKeyWithTarget, action, delay);
+        // 处理逻辑为DistroDelayTaskProcessor.process方法
         distroTaskEngineHolder.getDelayTaskExecuteEngine().addTask(distroKeyWithTarget, distroDelayTask);
         if (Loggers.DISTRO.isDebugEnabled()) {
             Loggers.DISTRO.debug("[DISTRO-SCHEDULE] {} to {}", distroKey, targetServer);
@@ -166,11 +167,13 @@ public class DistroProtocol {
         Loggers.DISTRO.info("[DISTRO] Receive distro data type: {}, key: {}", distroData.getType(),
                 distroData.getDistroKey());
         String resourceType = distroData.getDistroKey().getResourceType();
+        // 找到对应的执行器
         DistroDataProcessor dataProcessor = distroComponentHolder.findDataProcessor(resourceType);
         if (null == dataProcessor) {
             Loggers.DISTRO.warn("[DISTRO] Can't find data process for received data {}", resourceType);
             return false;
         }
+        // 执行处理逻辑
         return dataProcessor.processData(distroData);
     }
     

@@ -87,12 +87,16 @@ public class DistroClientTransportAgent implements DistroTransportAgent {
     
     @Override
     public void syncData(DistroData data, String targetServer, DistroCallback callback) {
+        // 判断目标集群节点是否存在
         if (isNoExistTarget(targetServer)) {
             callback.onSuccess();
             return;
         }
+        // 构建基于Distro协议的数据同步请求，处理逻辑在对应的Handler中
         DistroDataRequest request = new DistroDataRequest(data, data.getType());
+        // 获取目标节点信息
         Member member = memberManager.find(targetServer);
+        // 检测目标节点是否健康
         if (checkTargetServerStatusUnhealthy(member)) {
             Loggers.DISTRO
                     .warn("[DISTRO] Cancel distro sync caused by target server {} unhealthy, key: {}", targetServer,
@@ -101,6 +105,7 @@ public class DistroClientTransportAgent implements DistroTransportAgent {
             return;
         }
         try {
+            // 异步RPC请求同步
             clusterRpcClientProxy.asyncRequest(member, request, new DistroRpcCallbackWrapper(callback, member));
         } catch (NacosException nacosException) {
             callback.onFailed(nacosException);

@@ -91,11 +91,14 @@ public class EphemeralIpPortClientManager implements ClientManager {
     @Override
     public boolean clientDisconnected(String clientId) {
         Loggers.SRV_LOG.info("Client connection {} disconnect, remove instances and subscribers", clientId);
+        // 从本地的连接对应客户端缓存中移除客户端信息
         IpPortBasedClient client = clients.remove(clientId);
         if (null == client) {
             return true;
         }
+        // 移除成功发布客户端断连事件，注意这个事件有两个处理监听者
         NotifyCenter.publishEvent(new ClientEvent.ClientDisconnectEvent(client, isResponsibleClient(client)));
+        // 释放客户端信息
         client.release();
         return true;
     }
