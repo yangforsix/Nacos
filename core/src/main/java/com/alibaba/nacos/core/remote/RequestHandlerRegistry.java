@@ -52,9 +52,11 @@ public class RequestHandlerRegistry implements ApplicationListener<ContextRefres
     public RequestHandler getByRequestType(String requestType) {
         return registryHandlers.get(requestType);
     }
-    
+
+    // 请求处理类加载到缓存
     @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
+        // 获取所有继承了RequestHandler的类
         Map<String, RequestHandler> beansOfType = event.getApplicationContext().getBeansOfType(RequestHandler.class);
         Collection<RequestHandler> values = beansOfType.values();
         for (RequestHandler requestHandler : values) {
@@ -82,7 +84,9 @@ public class RequestHandlerRegistry implements ApplicationListener<ContextRefres
             } catch (Exception e) {
                 //ignore.
             }
+            // 获取泛型中的第一个参数类型，也就是对应处理请求的类型
             Class tClass = (Class) ((ParameterizedType) clazz.getGenericSuperclass()).getActualTypeArguments()[0];
+            // 添加到缓存中，结构为 处理请求的类型 - 该类型请求的处理类
             registryHandlers.putIfAbsent(tClass.getSimpleName(), requestHandler);
         }
     }

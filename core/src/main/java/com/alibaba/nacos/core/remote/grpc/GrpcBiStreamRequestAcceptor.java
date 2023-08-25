@@ -116,7 +116,7 @@ public class GrpcBiStreamRequestAcceptor extends BiRequestStreamGrpc.BiRequestSt
                     Connection connection = new GrpcConnection(metaInfo, responseObserver, GrpcServerConstants.CONTEXT_KEY_CHANNEL.get());
                     connection.setAbilities(setUpRequest.getAbilities());
                     boolean rejectSdkOnStarting = metaInfo.isSdkSource() && !ApplicationUtils.isStarted();
-                    
+                    // 构建连接核心方法
                     if (rejectSdkOnStarting || !connectionManager.register(connectionId, connection)) {
                         //Not register to the connection manager if current server is over limit or server is starting.
                         try {

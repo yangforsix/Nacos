@@ -49,13 +49,14 @@ public abstract class BaseRpcServer {
 
     /**
      * Start sever.
+     * 启动rpc调用服务端
      */
     @PostConstruct
     public void start() throws Exception {
         String serverName = getClass().getSimpleName();
         String tlsConfig = JacksonUtils.toJson(grpcServerConfig);
         Loggers.REMOTE.info("Nacos {} Rpc server starting at port {} and tls config:{}", serverName, getServicePort(), tlsConfig);
-        
+        // 会走到grpc服务端启动逻辑
         startServer();
     
         Loggers.REMOTE.info("Nacos {} Rpc server started at port {} and tls config:{}", serverName, getServicePort(), tlsConfig);

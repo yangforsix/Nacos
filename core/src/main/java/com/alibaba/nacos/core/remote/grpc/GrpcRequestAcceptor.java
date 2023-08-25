@@ -66,11 +66,12 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
         }
         
     }
-    
+
     @Override
     public void request(Payload grpcRequest, StreamObserver<Payload> responseObserver) {
         
         traceIfNecessary(grpcRequest, true);
+        // 获取请求的类型
         String type = grpcRequest.getMetadata().getType();
         
         //server is on starting.
@@ -92,7 +93,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             responseObserver.onCompleted();
             return;
         }
-        
+        // 根据类型，找到对应的请求处理类
         RequestHandler requestHandler = requestHandlerRegistry.getByRequestType(type);
         //no handler found.
         if (requestHandler == null) {

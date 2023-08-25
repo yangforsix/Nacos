@@ -72,6 +72,7 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
     public boolean clientConnected(String clientId, ClientAttributes attributes) {
         String type = attributes.getClientAttribute(ClientConstants.CONNECTION_TYPE);
         ClientFactory clientFactory = ClientFactoryHolder.getInstance().findClientFactory(type);
+        // 构建了client对象放入到客户端缓存中
         return clientConnected(clientFactory.newClient(clientId, attributes));
     }
     
